@@ -22,7 +22,7 @@ mongoose.connect("mongodb://localhost:27017/mestodb");
 // подключаем мидлвары, роуты и всё остальное...
 app.use("/users", routerUsers);
 app.use("/cards", routerCards);
-router.use("*", (req, res) => {
+app.use("*", (req, res) => {
   res.status(404).send({ message: "Not Found" });
 });
 
