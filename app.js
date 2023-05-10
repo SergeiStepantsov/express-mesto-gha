@@ -16,17 +16,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/users", routerUsers);
-app.use("/cards", routerCards);
 // подключаемся к серверу mongo
 mongoose.connect("mongodb://localhost:27017/mestodb");
-// {
-//useNewUrlParser: true,
-//useCreateIndex: true,
-//useFindAndModify: false,
-//});
 
 // подключаем мидлвары, роуты и всё остальное...
+app.use("/users", routerUsers);
+app.use("/cards", routerCards);
+router.use("*", (req, res) => {
+  res.status(404).send({ message: "Not Found" });
+});
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
