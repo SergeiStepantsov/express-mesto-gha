@@ -5,24 +5,39 @@ module.exports.createUser = (req, res) => {
   User.create({ name, about, avatar })
     .then((user) => res.status(201).send(user))
     .catch((err) => {
-      console.log(err);
+      if (err.name === "ValidationError") {
+        res.status(400).send({
+          message: "Переданы некорректные данные при создании пользователя.",
+        });
+      } else {
+        res.status(500).send({ message: err.message });
+      }
     });
 };
 
 module.exports.getUser = (req, res) => {
   User.findById(req.params.userId)
-    .then((user) => res.status(200).send(user))
+    .orFail(new Error("NotFound"))
+    .then((user) => res.send(user))
     .catch((err) => {
-      console.log(err);
+      if (err.name === "CastError") {
+        return res
+          .status(400)
+          .send({ message: "Переданы некорректные данные" });
+      }
+      if (err.message === "NotFound") {
+        return res
+          .status(404)
+          .send({ message: "Пользователь по указанному _id не найден" });
+      }
+      return res.status(500).send({ message: "Ошибка по умолчанию" });
     });
 };
 
 module.exports.getAllUsers = (req, res) => {
   User.find({})
     .then((users) => res.send(users))
-    .catch((err) => {
-      console.log(err);
-    });
+    .catch((err) => res.status(500).send({ message: err.message }));
 };
 
 module.exports.updateUser = (req, res) => {
