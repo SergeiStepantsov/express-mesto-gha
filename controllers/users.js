@@ -42,18 +42,37 @@ module.exports.getAllUsers = (req, res) => {
 
 module.exports.updateUser = (req, res) => {
   const { name, about } = req.body;
-  User.findByIdAndUpdate(req.user._id, { name, about })
-    .then((user) => res.send(user))
+  User.findByIdAndUpdate(
+    req.user._id,
+    { name, about },
+    { new: true, runValidators: true }
+  )
+    .then((user) => res.status(200).send(user))
     .catch((err) => {
-      console.log(err);
+      if (err.name === "ValidationError" || err.name === "CastError") {
+        return res.status(400).send({
+          message: "Переданы некорректные данные при обновлении профиля.",
+        });
+      }
+      return res.status(500).send({ message: "Ошибка по умолчанию" });
     });
 };
 
 module.exports.updateAvatar = (req, res) => {
   const { avatar } = req.body;
-  User.findByIdAndUpdate(req.user._id, { avatar })
-    .then((user) => res.send(user))
+  User.findByIdAndUpdate(
+    req.user._id,
+    { avatar },
+    { new: true, runValidators: true }
+  )
+    .then((user) => res.status(200).send(user))
     .catch((err) => {
-      console.log(err);
+      if (err.name === "ValidationError" || err.name === "CastError") {
+        res.status(400).send({
+          message: "Переданы некорректные данные при обновлении профиля.",
+        });
+      } else {
+        res.status(500).send({ message: err.message });
+      }
     });
 };
