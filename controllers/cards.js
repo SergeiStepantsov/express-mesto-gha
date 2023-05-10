@@ -23,7 +23,6 @@ module.exports.getAllCards = (req, res) => {
 
 module.exports.removeCard = (req, res) => {
   Card.findByIdAndDelete({ _id: req.params.cardId })
-    .findByIdAndRemove(cardId)
     .then((card) => {
       if (!card) {
         return res
