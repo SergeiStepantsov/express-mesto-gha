@@ -1,4 +1,5 @@
 const Card = require("../models/cards");
+const httpConstants = require("http2").constants;
 
 module.exports.createCard = (req, res) => {
   const { name, link } = req.body;
@@ -6,11 +7,13 @@ module.exports.createCard = (req, res) => {
     .then((card) => res.status(201).send(card))
     .catch((err) => {
       if (err.name === "ValidationError") {
-        res.status(400).send({
+        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
           message: "Переданы некорректные данные при создании карточки.",
         });
       } else {
-        res.status(500).send({ message: err.message });
+        res
+          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: err.message });
       }
     });
 };
@@ -18,7 +21,11 @@ module.exports.createCard = (req, res) => {
 module.exports.getAllCards = (req, res) => {
   Card.find({})
     .then((cards) => res.status(200).send(cards))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch((err) =>
+      res
+        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: err.message })
+    );
 };
 
 module.exports.removeCard = (req, res) => {
@@ -26,18 +33,20 @@ module.exports.removeCard = (req, res) => {
     .then((card) => {
       if (!card) {
         return res
-          .status(404)
+          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
           .send({ message: "Передан несуществующий _id карточки" });
       }
       return res.status(200).send(card);
     })
     .catch((err) => {
       if (err.name === "CastError") {
-        res.status(400).send({
+        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
           message: "Карточка с указанным _id не найдена.",
         });
       } else {
-        res.status(500).send({ message: err.message });
+        res
+          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: err.message });
       }
     });
 };
@@ -51,18 +60,20 @@ module.exports.addLike = (req, res) => {
     .then((card) => {
       if (!card) {
         return res
-          .status(404)
+          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
           .send({ message: "Передан несуществующий _id карточки" });
       }
       return res.status(200).send(card);
     })
     .catch((err) => {
       if (err.name === "CastError") {
-        return res.status(400).send({
+        return res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
           message: "Переданы некорректные данные для постановки лайка",
         });
       }
-      return res.status(500).send({ message: "Ошибка по умолчанию" });
+      return res
+        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: "Ошибка по умолчанию" });
     });
 };
 
@@ -75,17 +86,19 @@ module.exports.removeLike = (req, res) => {
     .then((card) => {
       if (!card) {
         return res
-          .status(404)
+          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
           .send({ message: "Передан несуществующий _id карточки" });
       }
       return res.status(200).send(card);
     })
     .catch((err) => {
-      if (err.name === "CastError" || err.name === "ValidationError") {
-        return res.status(400).send({
+      if (err.name === "CastError") {
+        return res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
           message: "Переданы некорректные данные для снятия лайка",
         });
       }
-      return res.status(500).send({ message: "Ошибка по умолчанию" });
+      return res
+        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: "Ошибка по умолчанию" });
     });
 };

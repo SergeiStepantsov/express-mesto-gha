@@ -1,4 +1,5 @@
 const User = require("../models/users");
+const httpConstants = require("http2").constants;
 
 module.exports.createUser = (req, res) => {
   const { name, about, avatar } = req.body;
@@ -6,11 +7,13 @@ module.exports.createUser = (req, res) => {
     .then((user) => res.status(201).send(user))
     .catch((err) => {
       if (err.name === "ValidationError") {
-        res.status(400).send({
+        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
           message: "Переданы некорректные данные при создании пользователя.",
         });
       } else {
-        res.status(500).send({ message: err.message });
+        res
+          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: err.message });
       }
     });
 };
@@ -22,22 +25,28 @@ module.exports.getUser = (req, res) => {
     .catch((err) => {
       if (err.name === "CastError") {
         return res
-          .status(400)
+          .status(httpConstants.HTTP_STATUS_BAD_REQUEST)
           .send({ message: "Переданы некорректные данные" });
       }
       if (err.message === "NotFound") {
         return res
-          .status(404)
+          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
           .send({ message: "Пользователь по указанному _id не найден" });
       }
-      return res.status(500).send({ message: "Ошибка по умолчанию" });
+      return res
+        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: "Ошибка по умолчанию" });
     });
 };
 
 module.exports.getAllUsers = (req, res) => {
   User.find({})
     .then((users) => res.send(users))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch((err) =>
+      res
+        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: err.message })
+    );
 };
 
 module.exports.updateUser = (req, res) => {
@@ -49,12 +58,14 @@ module.exports.updateUser = (req, res) => {
   )
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err.name === "ValidationError" || err.name === "CastError") {
-        return res.status(400).send({
+      if (err.name === "ValidationError") {
+        return res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
           message: "Переданы некорректные данные при обновлении профиля.",
         });
       }
-      return res.status(500).send({ message: "Ошибка по умолчанию" });
+      return res
+        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        .send({ message: "Ошибка по умолчанию" });
     });
 };
 
@@ -68,11 +79,13 @@ module.exports.updateAvatar = (req, res) => {
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.name === "ValidationError" || err.name === "CastError") {
-        res.status(400).send({
+        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
           message: "Переданы некорректные данные при обновлении профиля.",
         });
       } else {
-        res.status(500).send({ message: err.message });
+        res
+          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+          .send({ message: err.message });
       }
     });
 };
