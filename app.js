@@ -6,7 +6,7 @@ const router = require("./routes/index");
 const { PORT = 3000 } = process.env;
 
 const app = express();
-
+//app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   req.user = {
     _id: "645a51c0ce292ea953172dac", // вставьте сюда _id созданного в предыдущем пункте пользователя
@@ -19,8 +19,7 @@ app.use((req, res, next) => {
 mongoose.connect("mongodb://localhost:27017/mestodb");
 
 // подключаем мидлвары, роуты и всё остальное...
-
-// app.use(express.json());
+//app.use(express.json());
 // app.use("/users", routerUsers);
 // app.use("/cards", routerCards);
 // app.use("*", (req, res) => {
