@@ -28,7 +28,14 @@ module.exports.createUser = (req, res, next) => {
       about,
       avatar,
     })
-      .then((user) => res.status(httpConstants.HTTP_STATUS_CREATED).send(user))
+      .then(() =>
+        res.status(httpConstants.HTTP_STATUS_CREATED).send({
+          name,
+          about,
+          avatar,
+          email,
+        })
+      )
       .catch(next)
   );
 };
