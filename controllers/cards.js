@@ -1,104 +1,70 @@
 const Card = require("../models/cards");
 const httpConstants = require("http2").constants;
+const {
+  handleErrors,
+  NotFoundError,
+  ForbiddenError,
+} = require("../utilities/handleErrors");
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
-    .then((card) => res.status(201).send(card))
-    .catch((err) => {
-      if (err.name === "ValidationError") {
-        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
-          message: "Переданы некорректные данные при создании карточки.",
-        });
-      } else {
-        res
-          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-          .send({ message: err.message });
-      }
-    });
+    .then((card) => card.populate("owner"))
+    .then((card) => res.status(httpConstants.HTTP_STATUS_CREATED).send(card))
+    .catch(next);
 };
 
-module.exports.getAllCards = (req, res) => {
+module.exports.getAllCards = (req, res, next) => {
   Card.find({})
-    .then((cards) => res.status(200).send(cards))
-    .catch((err) =>
-      res
-        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-        .send({ message: err.message })
-    );
+    .populate([
+      { path: "likes", model: "user" },
+      { path: "owner", model: "user" },
+    ])
+    .then((cards) => res.send(cards))
+    .catch(next);
 };
 
-module.exports.removeCard = (req, res) => {
-  Card.findByIdAndDelete({ _id: req.params.cardId })
+module.exports.removeCard = (req, res, next) => {
+  Card.findOne({ _id: req.params.cardId })
+    .populate([{ path: "owner", model: "user" }])
     .then((card) => {
       if (!card) {
-        return res
-          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
-          .send({ message: "Передан несуществующий _id карточки" });
+        throw new NotFoundError("Карточка уже удалена");
       }
-      return res.status(200).send(card);
+      if (card.owner._id.toString() !== req.user._id.toString()) {
+        throw new ForbiddenError("У вас нет прав на удаление этой карточки");
+      }
+      return card.deleteOne().then((deletedCard) => {
+        res.send(deletedCard);
+      });
     })
-    .catch((err) => {
-      if (err.name === "CastError") {
-        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
-          message: "Карточка с указанным _id не найдена.",
-        });
+    .catch(next);
+};
+
+const updateLikes = (req, res, action) => {
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { [action]: { likes: req.user._id } },
+    { new: true }
+  )
+    .populate([
+      { path: "likes", model: "user" },
+      { path: "owner", model: "user" },
+    ])
+    .then((card) => {
+      if (card) {
+        res.send(card);
       } else {
-        res
-          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-          .send({ message: err.message });
+        throw new NotFoundError("Карточка не найдена");
       }
-    });
+    })
+    .catch((err) => handleErrors(err, res));
 };
 
 module.exports.addLike = (req, res) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user._id } },
-    { new: true }
-  )
-    .then((card) => {
-      if (!card) {
-        return res
-          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
-          .send({ message: "Передан несуществующий _id карточки" });
-      }
-      return res.status(200).send(card);
-    })
-    .catch((err) => {
-      if (err.name === "CastError") {
-        return res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
-          message: "Переданы некорректные данные для постановки лайка",
-        });
-      }
-      return res
-        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-        .send({ message: "Ошибка по умолчанию" });
-    });
+  updateLikes(req, res, "$addToSet");
 };
 
 module.exports.removeLike = (req, res) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $pull: { likes: req.user._id } },
-    { new: true }
-  )
-    .then((card) => {
-      if (!card) {
-        return res
-          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
-          .send({ message: "Передан несуществующий _id карточки" });
-      }
-      return res.status(200).send(card);
-    })
-    .catch((err) => {
-      if (err.name === "CastError") {
-        return res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
-          message: "Переданы некорректные данные для снятия лайка",
-        });
-      }
-      return res
-        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-        .send({ message: "Ошибка по умолчанию" });
-    });
+  updateLikes(req, res, "$pull");
 };

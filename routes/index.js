@@ -1,17 +1,25 @@
 const express = require("express");
-const httpConstants = require("http2").constants;
 const router = require("express").Router();
+const { login, createUser } = require("../controllers/users");
+const {
+  validateLogin,
+  validateRegister,
+} = require("../utilities/userValidate");
+const auth = require("../middlewares/auth");
 const usersRouter = require("./users");
 const cardsRouter = require("./cards");
+const { handleErrors, NotFoundError } = require("../utilities/handleErrors");
 
-router.use(express.json());
-router.use(express.urlencoded({ extended: true }));
+router.post("/signin", validateLogin, login);
+router.post("/signup", validateRegister, createUser);
+router.use(auth);
 router.use("/users", usersRouter);
 router.use("/cards", cardsRouter);
 router.use("*", (req, res) => {
-  res
-    .status(httpConstants.HTTP_STATUS_NOT_FOUND)
-    .send({ message: "Not Found" });
+  const newError = new NotFoundError(
+    "По указанному вами адресу ничего не найдено"
+  );
+  handleErrors(newError, res);
 });
 
 module.exports = router;

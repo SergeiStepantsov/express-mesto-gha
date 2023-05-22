@@ -1,72 +1,89 @@
 const User = require("../models/users");
 const httpConstants = require("http2").constants;
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const { JWT_SECRET } = require("../config");
+const { NotFoundError } = require("../utilities/handleErrors");
 
-module.exports.createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-  User.create({ name, about, avatar })
-    .then((user) => res.status(201).send(user))
-    .catch((err) => {
-      if (err.name === "ValidationError") {
-        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
-          message: "Переданы некорректные данные при создании пользователя.",
-        });
+module.exports.getCurrentUser = (req, res, next) => {
+  const { _id } = req.user;
+  User.findById({ _id })
+    .then((user) => {
+      if (user) {
+        res.send(user);
       } else {
-        res
-          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-          .send({ message: err.message });
+        throw new NotFoundError("Пользователь не найден");
       }
-    });
+    })
+    .catch(next);
 };
 
-module.exports.getUser = (req, res) => {
+module.exports.createUser = (req, res, next) => {
+  const { email, password, name, about, avatar } = req.body;
+  bcrypt.hash(password, 10).then((hash) =>
+    User.create({
+      email,
+      password: hash,
+      name,
+      about,
+      avatar,
+    })
+      .then((user) => res.status(httpConstants.HTTP_STATUS_CREATED).send(user))
+      .catch(next)
+  );
+};
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+  User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
+        expiresIn: "7d",
+      });
+      res
+        .cookie("token", token, {
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7дней
+          sameSite: true,
+          httpOnly: true,
+        })
+        .send({ token });
+    })
+    .catch(next);
+};
+
+module.exports.getUser = (req, res, next) => {
   User.findById(req.params.userId)
-    .orFail(new Error("NotFound"))
-    .then((user) => res.send(user))
-    .catch((err) => {
-      if (err.name === "CastError") {
-        return res
-          .status(httpConstants.HTTP_STATUS_BAD_REQUEST)
-          .send({ message: "Переданы некорректные данные" });
+    .then((user) => {
+      if (user) {
+        res.send(user);
+      } else {
+        throw new NotFoundError("Пользователь не найден");
       }
-      if (err.message === "NotFound") {
-        return res
-          .status(httpConstants.HTTP_STATUS_NOT_FOUND)
-          .send({ message: "Пользователь по указанному _id не найден" });
-      }
-      return res
-        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-        .send({ message: "Ошибка по умолчанию" });
-    });
+    })
+    .catch(next);
 };
 
-module.exports.getAllUsers = (req, res) => {
+module.exports.getAllUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send(users))
-    .catch((err) =>
-      res
-        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-        .send({ message: err.message })
-    );
+    .catch(next);
 };
 
-module.exports.updateUser = (req, res) => {
+module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
     { name, about },
     { new: true, runValidators: true }
   )
-    .then((user) => res.status(200).send(user))
-    .catch((err) => {
-      if (err.name === "ValidationError") {
-        return res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
-          message: "Переданы некорректные данные при обновлении профиля.",
-        });
+    .then((user) => {
+      if (user) {
+        res.send(user);
+      } else {
+        throw new NotFoundError("Пользователь не найден");
       }
-      return res
-        .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-        .send({ message: "Ошибка по умолчанию" });
-    });
+    })
+    .catch(next);
 };
 
 module.exports.updateAvatar = (req, res) => {
@@ -76,16 +93,12 @@ module.exports.updateAvatar = (req, res) => {
     { avatar },
     { new: true, runValidators: true }
   )
-    .then((user) => res.status(200).send(user))
-    .catch((err) => {
-      if (err.name === "ValidationError") {
-        res.status(httpConstants.HTTP_STATUS_BAD_REQUEST).send({
-          message: "Переданы некорректные данные при обновлении профиля.",
-        });
+    .then((user) => {
+      if (user) {
+        res.send(user);
       } else {
-        res
-          .status(httpConstants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-          .send({ message: err.message });
+        throw new NotFoundError("Пользователь не найден");
       }
-    });
+    })
+    .catch(next);
 };
