@@ -20,7 +20,7 @@ app.use(router);
 
 app.use(errors());
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   handleErrors(err, res);
 });
 
