@@ -1,9 +1,9 @@
-const User = require("../models/users");
 const httpConstants = require("http2").constants;
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const User = require("../models/users");
 const { JWT_SECRET } = require("../config");
-const { NotFoundError } = require("../utilities/handleErrors");
+const { NotFoundError, ConflictError } = require("../utilities/handleErrors");
 
 module.exports.getCurrentUser = (req, res, next) => {
   const { _id } = req.user;
@@ -36,6 +36,14 @@ module.exports.createUser = (req, res, next) => {
           email,
         })
       )
+      .catch((err) => {
+        if (err.code === 11000) {
+          next(
+            new ConflictError("Пользователь с таким Email уже зарегистрирован")
+          );
+        }
+        next(err);
+      })
       .catch(next)
   );
 };

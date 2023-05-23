@@ -1,10 +1,6 @@
-const Card = require("../models/cards");
 const httpConstants = require("http2").constants;
-const {
-  handleErrors,
-  NotFoundError,
-  ForbiddenError,
-} = require("../utilities/handleErrors");
+const Card = require("../models/cards");
+const { NotFoundError, ForbiddenError } = require("../utilities/handleErrors");
 
 module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
@@ -16,10 +12,6 @@ module.exports.createCard = (req, res, next) => {
 
 module.exports.getAllCards = (req, res, next) => {
   Card.find({})
-    .populate([
-      { path: "likes", model: "user" },
-      { path: "owner", model: "user" },
-    ])
     .then((cards) => res.send(cards))
     .catch(next);
 };
@@ -41,7 +33,7 @@ module.exports.removeCard = (req, res, next) => {
     .catch(next);
 };
 
-const updateLikes = (req, res, action) => {
+const updateLikes = (req, res, action, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { [action]: { likes: req.user._id } },
@@ -58,13 +50,13 @@ const updateLikes = (req, res, action) => {
         throw new NotFoundError("Карточка не найдена");
       }
     })
-    .catch((err) => handleErrors(err, res));
+    .catch(next);
 };
 
-module.exports.addLike = (req, res) => {
-  updateLikes(req, res, "$addToSet");
+module.exports.addLike = (req, res, next) => {
+  updateLikes(req, res, "$addToSet", next);
 };
 
-module.exports.removeLike = (req, res) => {
-  updateLikes(req, res, "$pull");
+module.exports.removeLike = (req, res, next) => {
+  updateLikes(req, res, "$pull", next);
 };
