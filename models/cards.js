@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { URL_REGEXP } = require("../utilities/constants");
+const mongoose = require('mongoose');
+const { URL_REGEXP } = require('../utilities/constants');
 
 const cardSchema = new mongoose.Schema({
   name: {
@@ -18,13 +18,13 @@ const cardSchema = new mongoose.Schema({
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "user",
+    ref: 'user',
     required: true,
   },
   likes: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
+      ref: 'user',
       default: [],
     },
   ],
@@ -34,4 +34,4 @@ const cardSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("card", cardSchema);
+module.exports = mongoose.model('card', cardSchema);

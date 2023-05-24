@@ -1,9 +1,9 @@
-const httpConstants = require("http2").constants;
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const User = require("../models/users");
-const { JWT_SECRET } = require("../config");
-const { NotFoundError, ConflictError } = require("../utilities/handleErrors");
+const httpConstants = require('http2').constants;
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const User = require('../models/users');
+const { JWT_SECRET } = require('../config');
+const { NotFoundError, ConflictError } = require('../utilities/handleErrors');
 
 module.exports.getCurrentUser = (req, res, next) => {
   const { _id } = req.user;
@@ -12,40 +12,38 @@ module.exports.getCurrentUser = (req, res, next) => {
       if (user) {
         res.send(user);
       } else {
-        throw new NotFoundError("Пользователь не найден");
+        throw new NotFoundError('Пользователь не найден');
       }
     })
     .catch(next);
 };
 
 module.exports.createUser = (req, res, next) => {
-  const { email, password, name, about, avatar } = req.body;
-  bcrypt.hash(password, 10).then((hash) =>
-    User.create({
-      email,
-      password: hash,
+  const {
+    email, password, name, about, avatar,
+  } = req.body;
+  bcrypt.hash(password, 10).then((hash) => User.create({
+    email,
+    password: hash,
+    name,
+    about,
+    avatar,
+  })
+    .then(() => res.status(httpConstants.HTTP_STATUS_CREATED).send({
       name,
       about,
       avatar,
+      email,
+    }))
+    .catch((err) => {
+      if (err.code === 11000) {
+        next(
+          new ConflictError('Пользователь с таким Email уже зарегистрирован'),
+        );
+      }
+      next(err);
     })
-      .then(() =>
-        res.status(httpConstants.HTTP_STATUS_CREATED).send({
-          name,
-          about,
-          avatar,
-          email,
-        })
-      )
-      .catch((err) => {
-        if (err.code === 11000) {
-          next(
-            new ConflictError("Пользователь с таким Email уже зарегистрирован")
-          );
-        }
-        next(err);
-      })
-      .catch(next)
-  );
+    .catch(next));
 };
 
 module.exports.login = (req, res, next) => {
@@ -53,10 +51,10 @@ module.exports.login = (req, res, next) => {
   User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
-        expiresIn: "7d",
+        expiresIn: '7d',
       });
       res
-        .cookie("token", token, {
+        .cookie('token', token, {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7дней
           sameSite: true,
           httpOnly: true,
@@ -72,7 +70,7 @@ module.exports.getUser = (req, res, next) => {
       if (user) {
         res.send(user);
       } else {
-        throw new NotFoundError("Пользователь не найден");
+        throw new NotFoundError('Пользователь не найден');
       }
     })
     .catch(next);
@@ -89,13 +87,13 @@ module.exports.updateUser = (req, res, next) => {
   User.findByIdAndUpdate(
     req.user._id,
     { name, about },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   )
     .then((user) => {
       if (user) {
         res.send(user);
       } else {
-        throw new NotFoundError("Пользователь не найден");
+        throw new NotFoundError('Пользователь не найден');
       }
     })
     .catch(next);
@@ -106,13 +104,13 @@ module.exports.updateAvatar = (req, res, next) => {
   User.findByIdAndUpdate(
     req.user._id,
     { avatar },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   )
     .then((user) => {
       if (user) {
         res.send(user);
       } else {
-        throw new NotFoundError("Пользователь не найден");
+        throw new NotFoundError('Пользователь не найден');
       }
     })
     .catch(next);
